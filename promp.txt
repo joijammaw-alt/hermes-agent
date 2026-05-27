@@ -1,0 +1,46 @@
+ในฐานะ Full-stack Developer ฉันต้องการสร้าง AI Agent ผู้ช่วยส่วนตัวชื่อ "Hermes" โดยใช้ Python และเฟรมเวิร์ก CrewAI เพื่อรันบน Local Machine ของฉัน สมองหลักของ Hermes จะใช้ Google Gemini (gemini-1.5-flash) ผ่านไลบรารี langchain-google-genai
+
+เป้าหมายของ Hermes คือการเรียกใช้เครื่องมือ (Tools) 3 อย่างแบบอัตโนมัติ 
+กรุณาเขียนโค้ดที่สมบูรณ์และพร้อมใช้งานสำหรับไฟล์ทั้งหมดตามโครงสร้างด้านล่างนี้ พร้อมอธิบายวิธีการรันและตั้งค่า
+
+**โครงสร้างโปรเจกต์ที่ต้องการ:**
+hermes-agent/
+├── .env
+├── requirements.txt
+├── main.py
+└── tools/
+    ├── __init__.py
+    ├── scraper_tool.py
+    ├── wp_tool.py
+    └── astro_tool.py
+
+**รายละเอียดสิ่งที่ต้องเขียนในแต่ละไฟล์:**
+
+1. `requirements.txt`: 
+รวมไลบรารีทั้งหมดที่จำเป็น เช่น crewai, langchain-google-genai, python-dotenv, playwright (หรือ beautifulsoup4), requests
+
+2. `tools/scraper_tool.py` (ดึงข้อมูลลง Obsidian):
+- เขียนฟังก์ชัน `@tool` สำหรับดึงข้อมูลจากหน้า Landing Page และ 5 Blog ล่าสุด ของ "โรงเรียนวัชระ" (สมมติ URL เป็น https://example-watchara.com)
+- สกัด Title และ Content 
+- สร้างไฟล์ .md สำหรับ Landing Page 1 ไฟล์ และ Blog 5 ไฟล์
+- บันทึกไฟล์ .md ลงใน Path ของโปรแกรม Obsidian โดยตรง (จำลอง Path ว่าเป็น ./Obsidian_Vault) พร้อมใส่ Metadata tag (Frontmatter) ให้เรียบร้อย
+
+3. `tools/wp_tool.py` (เขียน Blog ลง WordPress):
+- เขียนฟังก์ชัน `@tool` ที่รับพารามิเตอร์เป็น Title และ Content
+- ใช้ `requests` ยิง HTTP POST ไปที่ WordPress REST API เพื่อโพสต์บทความ
+- ดึง URL, Username และ Application Password ของ WordPress จากไฟล์ .env
+- คืนค่าผลลัพธ์ว่าโพสต์สำเร็จหรือไม่
+
+4. `tools/astro_tool.py` (ปรับแต่ง Astro Landing Page):
+- เขียนฟังก์ชัน `@tool` สำหรับการแก้ไขไฟล์ในโปรเจกต์เว็บ
+- จำลองการอ่านและเขียนไฟล์ `src/pages/index.astro` ของโปรเจกต์ 
+- ฟังก์ชันนี้ควรให้ AI สามารถเสนอโครงสร้างโค้ดที่มี Tailwind CSS เพื่อทำให้หน้า Landing page ดูสวยงามและทันสมัยขึ้น
+
+5. `main.py` (ไฟล์หลัก):
+- โหลดตัวแปรจาก .env (GOOGLE_API_KEY, WP_URL, WP_USER, WP_PASS)
+- ตั้งค่า `ChatGoogleGenerativeAI` ใช้โมเดล `gemini-1.5-flash`
+- สร้าง Agent ชื่อ "Hermes" กำหนด Role เป็น "Full-Stack AI Assistant"
+- ผูก Tools ทั้ง 3 ตัวเข้ากับ Hermes
+- สร้าง Tasks 3 งาน (Scrape ข้อมูล, โพสต์ลง WordPress, และอัปเดตไฟล์ Astro) ให้ Hermes ทำงานแบบ Sequential
+
+ข้อกำหนดเพิ่มเติม: เขียนคอมเมนต์อธิบายโค้ดเป็นภาษาไทย และใช้หลักการ Clean Code ที่สามารถเปิดแก้ไขต่อใน Editor ได้ง่าย

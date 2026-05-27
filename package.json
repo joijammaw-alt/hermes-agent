@@ -1,0 +1,16 @@
+{
+  "name": "hermes-watchara-astro",
+  "type": "module",
+  "version": "1.0.0",
+  "description": "Premium school landing page made by Hermes AI Agent",
+  "scripts": {
+    "dev": "astro dev --host",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "astro": "^4.16.0"
+  }
+}

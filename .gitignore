@@ -1,0 +1,7 @@
+# สั่งไม่ให้เอาโฟลเดอร์เหล่านี้ขึ้น Git
+node_modules/
+venv/
+.env
+dist/
+.output
+.DS_Store
