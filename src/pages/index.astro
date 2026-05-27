@@ -3,10 +3,17 @@
 // ออกแบบและพัฒนาโดย Hermes AI Assistant
 // ดีไซน์ระดับ Premium ด้วย Dynamic Cards Grid + Category Filter
 
+import { getCollection } from 'astro:content';
+import { frontmatter as landingFrontmatter, rawContent } from './landing.md';
+
+const raw = rawContent();
+const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+const slogan = lines.find(l => l.startsWith("สถาบันการศึกษาชั้นนำ")) || "มุ่งมั่นสู่ความเป็นเลิศ พัฒนาคุณธรรม นำเทคโนโลยีสู่อนาคต";
+
 const schoolInfo = {
   name: "โรงเรียนวัชระ",
   englishName: "Watchara School",
-  slogan: "มุ่งมั่นสู่ความเป็นเลิศ พัฒนาคุณธรรม นำเทคโนโลยีสู่อนาคต",
+  slogan: slogan,
   vision: "สร้างสรรค์ปัญญา พัฒนาคุณธรรม นำเทคโนโลยี สรรค์สร้างนวัตกรรมสู่สากล",
   missions: [
     "จัดการเรียนการสอนที่เน้นผู้เรียนเป็นสำคัญ และส่งเสริมความเป็นเลิศทางวิชาการ",
@@ -19,87 +26,80 @@ const schoolInfo = {
   email: "info@watchara.ac.th"
 };
 
-// === ข้อมูลข่าวสารทั้ง 6 รายการ จาก Obsidian Vault ===
-const allNews = [
-  {
-    id: 0,
-    title: "ยินดีต้อนรับสู่โรงเรียนวัชระ — แหล่งเรียนรู้เพื่ออนาคต",
-    date: "2026-04-01",
-    author: "ฝ่ายประชาสัมพันธ์",
-    categories: ["all", "featured"],
-    categoryLabel: "ข่าวเด่น",
-    summary: "โรงเรียนวัชระ สถาบันการศึกษาชั้นนำที่มุ่งเน้นการพัฒนาผู้เรียนอย่างรอบด้าน บูรณาการเทคโนโลยีและวิทยาการสมัยใหม่ เพื่อเตรียมความพร้อมให้เยาวชนก้าวสู่การเป็นผู้นำในยุคดิจิทัลอย่างมั่นใจ พร้อมหลักสูตรที่ทันสมัย คณาจารย์ผู้เชี่ยวชาญ และสภาพแวดล้อมการเรียนรู้ที่เอื้อต่อการพัฒนาศักยภาพอย่างเต็มที่",
-    icon: "fa-graduation-cap",
-    gradient: "from-sky-500 via-blue-600 to-indigo-700",
-    badgeColor: "bg-sky-500",
-    featured: true
-  },
-  {
-    id: 1,
-    title: "เปิดตัวโครงการห้องเรียนหุ่นยนต์และ AI สำหรับมัธยมศึกษาตอนปลาย",
-    date: "2026-03-29",
-    author: "ฝ่ายวิชาการและเทคโนโลยี",
-    categories: ["all", "technology", "featured"],
-    categoryLabel: "เทคโนโลยี",
-    summary: "โรงเรียนวัชระได้ทำการเปิดตัวห้องปฏิบัติการและหลักสูตรใหม่ล่าสุด 'ห้องเรียนหุ่นยนต์และปัญญาประดิษฐ์ (Robotics & AI Lab)' เพื่อเตรียมความพร้อมให้นักเรียนระดับมัธยมศึกษาตอนปลายก้าวเข้าสู่ยุคดิจิทัลอย่างเต็มตัว ด้วยอุปกรณ์มาตรฐานอุตสาหกรรมและการเขียนโปรแกรมควบคุมระบบอัตโนมัติ",
-    icon: "fa-robot",
-    gradient: "from-blue-600 via-indigo-600 to-violet-700",
-    badgeColor: "bg-blue-600",
-    featured: true
-  },
-  {
-    id: 2,
-    title: "ผลการแข่งขันวิชาการระดับประเทศ ประจำปี 2569",
-    date: "2026-03-25",
-    author: "ฝ่ายแนะแนวและกิจกรรมวิชาการ",
-    categories: ["all", "academic"],
-    categoryLabel: "วิชาการ",
-    summary: "โรงเรียนวัชระขอแสดงความยินดีกับนักเรียนที่เป็นตัวแทนเข้าร่วมการแข่งขันวิชาการและทักษะคอมพิวเตอร์ระดับประเทศ ประจำปีการศึกษา 2569 ซึ่งสามารถคว้ารางวัลชนะเลิศอันดับ 1 การเขียนโปรแกรมคอมพิวเตอร์ และรางวัลเหรียญทองโครงงานวิทยาศาสตร์ประยุกต์",
-    icon: "fa-trophy",
-    gradient: "from-amber-500 via-orange-500 to-red-500",
-    badgeColor: "bg-amber-500",
-    featured: false
-  },
-  {
-    id: 3,
-    title: "กิจกรรมทัศนศึกษาเชิงประวัติศาสตร์และนวัตกรรมแห่งชาติ",
-    date: "2026-03-20",
-    author: "ฝ่ายกิจกรรมนักเรียน",
-    categories: ["all", "activity"],
-    categoryLabel: "กิจกรรม",
-    summary: "โรงเรียนวัชระจัดกิจกรรมทัศนศึกษานอกสถานที่สำหรับนักเรียนชั้นมัธยมศึกษาปีที่ 4 โดยผสมผสานการเรียนรู้ด้านประวัติศาสตร์ ณ พิพิธภัณฑ์สถานแห่งชาติ และการศึกษานวัตกรรม ณ เขตนวัตกรรมระเบียงเศรษฐกิจพิเศษอย่างลงตัว",
-    icon: "fa-landmark",
-    gradient: "from-emerald-500 via-teal-500 to-cyan-600",
-    badgeColor: "bg-emerald-500",
-    featured: false
-  },
-  {
-    id: 4,
-    title: "การปรับปรุงหลักสูตรการเขียนโปรแกรมและการคิดเชิงคำนวณ",
-    date: "2026-03-15",
-    author: "ฝ่ายพัฒนาหลักสูตร",
-    categories: ["all", "technology", "curriculum"],
-    categoryLabel: "หลักสูตร",
-    summary: "กลุ่มสาระการเรียนรู้วิทยาศาสตร์และเทคโนโลยี ประกาศปรับปรุงหลักสูตรการเรียนการสอนวิชาคอมพิวเตอร์และวิทยาการคำนวณใหม่ทั้งหมด เริ่มต้นตั้งแต่ Scratch ในระดับประถมปลาย Python ในมัธยมต้น และ Data Science ในมัธยมปลาย",
-    icon: "fa-code",
-    gradient: "from-purple-500 via-violet-600 to-fuchsia-600",
-    badgeColor: "bg-purple-500",
-    featured: false
-  },
-  {
-    id: 5,
-    title: "สัมมนาผู้ปกครอง: การแนะนำดูแลลูกให้ปลอดภัยในยุคดิจิทัล",
-    date: "2026-03-10",
-    author: "งานสัมพันธ์ชุมชนและผู้ปกครอง",
-    categories: ["all", "parents"],
-    categoryLabel: "ผู้ปกครอง",
-    summary: "โรงเรียนวัชระจัดงานสัมมนาพิเศษในหัวข้อ 'เลี้ยงลูกอย่างไรให้ปลอดภัยและสร้างสรรค์ในยุคดิจิทัล' เพื่อร่วมมือกับผู้ปกครองในการดูแล ป้องกัน และส่งเสริมการใช้งานเทคโนโลยีของบุตรหลานอย่างเหมาะสมและปลอดภัย",
-    icon: "fa-users",
-    gradient: "from-rose-500 via-pink-500 to-red-500",
-    badgeColor: "bg-rose-500",
-    featured: false
+// ดึงข้อมูลข่าวสารทั้งหมดจาก Content Collections
+const blogEntries = await getCollection('blog');
+
+// === ข้อมูลข่าวสารทั้ง 6 รายการ จาก Content Collections ===
+const allNews = blogEntries.map((entry, index) => {
+  const data = entry.data;
+  const categories = ["all"];
+  let categoryLabel = "ข่าวเด่น";
+  let icon = "fa-graduation-cap";
+  let gradient = "from-sky-500 via-blue-600 to-indigo-700";
+  let badgeColor = "bg-sky-500";
+  let featured = false;
+  
+  const titleLower = data.title.toLowerCase();
+  if (titleLower.includes("หุ่นยนต์") || titleLower.includes("ai") || titleLower.includes("center") || titleLower.includes("lab")) {
+    categories.push("technology");
+    categoryLabel = "เทคโนโลยี";
+    icon = "fa-robot";
+    gradient = "from-blue-600 via-indigo-600 to-violet-700";
+    badgeColor = "bg-blue-600";
+  } else if (titleLower.includes("วิชาการ") || titleLower.includes("แข่งขัน")) {
+    categories.push("academic");
+    categoryLabel = "วิชาการ";
+    icon = "fa-trophy";
+    gradient = "from-amber-500 via-orange-500 to-red-500";
+    badgeColor = "bg-amber-500";
+  } else if (titleLower.includes("ทัศนศึกษา") || titleLower.includes("ประวัติศาสตร์")) {
+    categories.push("activity");
+    categoryLabel = "กิจกรรม";
+    icon = "fa-landmark";
+    gradient = "from-emerald-500 via-teal-500 to-cyan-600";
+    badgeColor = "bg-emerald-500";
+  } else if (titleLower.includes("หลักสูตร") || titleLower.includes("เขียนโปรแกรม")) {
+    categories.push("curriculum");
+    categoryLabel = "หลักสูตร";
+    icon = "fa-code";
+    gradient = "from-purple-500 via-violet-600 to-fuchsia-600";
+    badgeColor = "bg-purple-500";
+  } else if (titleLower.includes("สัมมนา") || titleLower.includes("ผู้ปกครอง")) {
+    categories.push("parents");
+    categoryLabel = "ผู้ปกครอง";
+    icon = "fa-users";
+    gradient = "from-rose-500 via-pink-500 to-red-500";
+    badgeColor = "bg-rose-500";
   }
-];
+  
+  // ให้สองข่าวแรกสุดหรือข่าวเฉพาะเป็นข่าวเด่น
+  if (index === 0 || index === 1 || data.title.includes("ต้อนรับ") || data.title.includes("หุ่นยนต์และ AI")) {
+    categories.push("featured");
+    featured = true;
+  }
+  
+  // ดึงสรุปย่อของบทความ
+  const bodyText = entry.body || "";
+  const cleanedBody = bodyText
+    .replace(/#+\s+.+/g, "") // ลบหัวข้อ
+    .replace(/[#\n\*_-]/g, " ") // ลบสัญลักษณ์ Markdown
+    .trim();
+  const summary = cleanedBody ? cleanedBody.substring(0, 180) + "..." : "อ่านรายละเอียดเพิ่มเติมของข่าวสารนี้เพื่อติดตามข้อมูลและกิจกรรมจากทางโรงเรียน...";
+
+  return {
+    id: index,
+    title: data.title,
+    date: data.date ? new Date(data.date).toISOString().split('T')[0] : "2026-05-27",
+    author: data.source || "ฝ่ายประชาสัมพันธ์",
+    categories,
+    categoryLabel,
+    summary,
+    icon,
+    gradient,
+    badgeColor,
+    featured
+  };
+}).sort((a, b) => b.date.localeCompare(a.date));
 
 // === หมวดหมู่สำหรับการกรอง ===
 const categories = [
@@ -460,7 +460,7 @@ const categories = [
                                 cat.key === 'all'
                                     ? 'active bg-gradient-to-r from-brand-500 to-futuristic-accent text-white border-transparent shadow-lg shadow-brand-500/20'
                                     : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:border-brand-500/40 hover:text-slate-200 hover:bg-slate-900'
-                            }`
+                            }`}
                         >
                             <i class={`fa-solid ${cat.icon} text-xs`}></i>
                             <span>{cat.label}</span>
