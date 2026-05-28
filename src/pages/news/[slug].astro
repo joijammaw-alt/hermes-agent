@@ -1,0 +1,512 @@
+---
+// src/pages/news/[slug].astro
+export async function getStaticPaths() {
+  const wpUrl = import.meta.env.WP_URL || process.env.WP_URL || 'https://wordpress.blayblay.com';
+  const wpUser = import.meta.env.WP_USER || process.env.WP_USER || 'Bank';
+  const wpPass = import.meta.env.WP_PASS || process.env.WP_PASS || 'XJeJ nPIz iSZn vkhw UpNd 9odZ';
+
+  let posts = [];
+  try {
+    const headers = {};
+    if (wpUser && wpPass) {
+      headers['Authorization'] = 'Basic ' + btoa(`${wpUser}:${wpPass}`);
+    }
+    
+    // Fetch posts from WordPress API
+    const response = await fetch(`${wpUrl.replace(/\/$/, '')}/wp-json/wp/v2/posts?per_page=100&_embed`, { headers });
+    
+    if (response.ok) {
+      posts = await response.json();
+    } else {
+      console.error(`WordPress API in getStaticPaths returned status ${response.status}`);
+    }
+  } catch (e) {
+    console.error("Failed to fetch from WordPress API for getStaticPaths:", e);
+  }
+
+  // Generate paths for each post using its WordPress slug
+  return posts.map((post) => ({
+    params: { slug: post.slug ? decodeURIComponent(post.slug) : String(post.id) },
+    props: { post, allPosts: posts },
+  }));
+}
+
+const { post, allPosts } = Astro.props;
+
+// Helpers (Consistent with index.astro)
+const getCategories = (post) => {
+  const cats = ['all'];
+  let title = post.title?.rendered || '';
+  if (typeof title === 'string') {
+    title = title
+      .replace(/&#8211;/g, '–')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#039;/g, "'");
+  }
+  const tags = post.tags || [];
+
+  if (title.includes('หุ่นยนต์') || title.includes('AI') || title.includes('เทคโนโลยี') || title.includes('เขียนโปรแกรม') || title.includes('Coding') || tags.includes('เทคโนโลยี')) { cats.push('technology'); }
+  if (title.includes('แข่งขัน') || title.includes('รางวัล') || title.includes('วิชาการ') || title.includes('เรียน') || title.includes('O-NET') || title.includes('สอบ') || tags.includes('วิชาการ')) { cats.push('academic'); }
+  if (title.includes('ทัศนศึกษา') || title.includes('กิจกรรม') || title.includes('แคมป์') || title.includes('ค่าย') || title.includes('สัมมนา') || title.includes('สันทนาการ') || tags.includes('กิจกรรม')) { cats.push('activity'); }
+  if (title.includes('หลักสูตร') || title.includes('การสอน') || title.includes('Core') || title.includes('English') || title.includes('วิทยาศาสตร์') || title.includes('คอมพิวเตอร์') || tags.includes('หลักสูตร')) { cats.push('curriculum'); }
+  if (title.includes('ผู้ปกครอง') || title.includes('เลี้ยงดู') || title.includes('RACI') || title.includes('สัมพันธ์') || title.includes('PTA') || tags.includes('ผู้ปกครอง')) { cats.push('parents'); }
+  if (title.includes('การศึกษา') || title.includes('ครู') || title.includes('นโยบาย') || title.includes('สลช') || title.includes('โรงเรียน') || title.includes('มช.') || title.includes('มหาวิทยาลัย') || title.includes('ผู้บริหาร') || title.includes('วิจัย') || tags.includes('การศึกษา') || tags.includes('นโยบาย')) { cats.push('education'); }
+  if (title.includes('เปิดตัว') || title.includes('แข่งขัน') || title.includes('นโยบาย') || title.includes('มช.') || title.includes('ผู้บริหาร') || title.includes('RACI') || cats.length <= 2) { cats.push('featured'); }
+
+  return [...new Set(cats)];
+};
+
+const getCategoryDetails = (cats) => {
+  if (cats.includes('technology')) {
+    return { gradient: 'from-blue-600 via-indigo-600 to-violet-700', hoverBorder: 'hover:border-blue-500/30', icon: 'fa-solid fa-robot', label: 'เทคโนโลยี', textColor: 'group-hover:text-blue-400', btnColor: 'text-blue-400 hover:text-blue-300', glow: 'bg-blue-500', accent: 'blue' };
+  }
+  if (cats.includes('academic')) {
+    return { gradient: 'from-amber-500 via-orange-500 to-red-500', hoverBorder: 'hover:border-amber-500/30', icon: 'fa-solid fa-trophy', label: 'วิชาการ', textColor: 'group-hover:text-amber-400', btnColor: 'text-amber-400 hover:text-amber-300', glow: 'bg-amber-500', accent: 'amber' };
+  }
+  if (cats.includes('activity')) {
+    return { gradient: 'from-emerald-500 via-teal-500 to-cyan-600', hoverBorder: 'hover:border-emerald-500/30', icon: 'fa-solid fa-route', label: 'กิจกรรม', textColor: 'group-hover:text-emerald-400', btnColor: 'text-emerald-400 hover:text-emerald-300', glow: 'bg-emerald-500', accent: 'emerald' };
+  }
+  if (cats.includes('curriculum')) {
+    return { gradient: 'from-purple-500 via-violet-600 to-fuchsia-600', hoverBorder: 'hover:border-purple-500/30', icon: 'fa-solid fa-book-open', label: 'หลักสูตร', textColor: 'group-hover:text-purple-400', btnColor: 'text-purple-400 hover:text-purple-300', glow: 'bg-purple-500', accent: 'purple' };
+  }
+  if (cats.includes('parents')) {
+    return { gradient: 'from-rose-500 via-pink-500 to-red-500', hoverBorder: 'hover:border-rose-500/30', icon: 'fa-solid fa-people-roof', label: 'ผู้ปกครอง', textColor: 'group-hover:text-rose-400', btnColor: 'text-rose-400 hover:text-rose-300', glow: 'bg-rose-500', accent: 'rose' };
+  }
+  if (cats.includes('education')) {
+    return { gradient: 'from-cyan-500 via-sky-600 to-blue-700', hoverBorder: 'hover:border-sky-500/30', icon: 'fa-solid fa-building-columns', label: 'การศึกษา', textColor: 'group-hover:text-sky-400', btnColor: 'text-sky-400 hover:text-sky-300', glow: 'bg-sky-500', accent: 'sky' };
+  }
+  return { gradient: 'from-slate-500 via-gray-600 to-zinc-700', hoverBorder: 'hover:border-slate-500/30', icon: 'fa-solid fa-newspaper', label: 'ทั่วไป', textColor: 'group-hover:text-slate-400', btnColor: 'text-slate-400 hover:text-slate-300', glow: 'bg-slate-500', accent: 'slate' };
+};
+
+const formatDate = (date) => {
+  try {
+    const d = new Date(date);
+    const thMonth = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+    return `${d.getDate()} ${thMonth[d.getMonth()]} ${d.getFullYear() + 543}`;
+  } catch { return '28 พ.ค. 2569'; }
+};
+
+const postCategories = getCategories(post);
+const categoryDetails = getCategoryDetails(postCategories);
+
+// Find other recent posts for the sidebar (excluding current)
+const recentPosts = allPosts
+  .filter(p => p.id !== post.id)
+  .sort((a, b) => new Date(b.date).valueOf() - new Date(a.date).valueOf())
+  .slice(0, 4);
+---
+
+<html lang="th" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{post.title?.rendered} | โรงเรียนวัชระ</title>
+    
+    <script is:inline src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800;900&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    
+    <script is:inline>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Sarabun', 'sans-serif'],
+                        heading: ['Kanit', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: { 50:'#eff6ff',100:'#dbeafe',200:'#bfdbfe',300:'#93c5fd',400:'#60a5fa',500:'#3b82f6',600:'#2563eb',700:'#1d4ed8',800:'#1e40af',900:'#1e3a5f',950:'#0f172a' },
+                        gold: { 400:'#facc15',500:'#eab308',600:'#ca8a04' },
+                        dark: { 900:'#030712',800:'#0a0f1e',700:'#111827',600:'#1f2937' }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body { font-family: 'Sarabun', sans-serif; }
+        h1,h2,h3,h4,h5,h6 { font-family: 'Kanit', sans-serif; }
+
+        .glass-nav {
+            background: rgba(3, 7, 18, 0.82);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+        }
+        .hero-bg {
+            background:
+                radial-gradient(ellipse 80% 50% at 50% -20%, rgba(59,130,246,0.12), transparent),
+                radial-gradient(ellipse 60% 40% at 80% 50%, rgba(167,139,250,0.08), transparent),
+                radial-gradient(ellipse 60% 40% at 20% 80%, rgba(244,114,182,0.06), transparent),
+                #030712;
+        }
+        .grid-bg {
+            background-image: linear-gradient(rgba(59,130,246,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(59,130,246,0.02) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+        
+        .sidebar-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .sidebar-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(59, 130, 246, 0.25);
+            box-shadow: 0 12px 25px -8px rgba(3, 7, 18, 0.5);
+        }
+
+        ::-webkit-scrollbar { width:8px; }
+        ::-webkit-scrollbar-track { background:#030712; }
+        ::-webkit-scrollbar-thumb { background:#1f2937; border-radius:4px; }
+        ::-webkit-scrollbar-thumb:hover { background:#374151; }
+    </style>
+
+    {/* WordPress HTML Content Styling for Dark Mode (Seamless tailwind-typography simulation) */}
+    <style is:global>
+        .wp-content {
+            color: #cbd5e1; /* text-slate-300 */
+            font-size: 1rem;
+            line-height: 1.8;
+            font-family: 'Sarabun', sans-serif;
+        }
+        @media (min-width: 640px) {
+            .wp-content {
+                font-size: 1.0625rem;
+            }
+        }
+        .wp-content p {
+            margin-bottom: 1.5rem;
+            line-height: 1.8;
+        }
+        .wp-content p:last-child {
+            margin-bottom: 0;
+        }
+        .wp-content h1, .wp-content h2, .wp-content h3, .wp-content h4, .wp-content h5, .wp-content h6 {
+            font-family: 'Kanit', sans-serif;
+            color: #ffffff;
+            font-weight: 700;
+            line-height: 1.4;
+            margin-top: 2.5rem;
+            margin-bottom: 1.25rem;
+            letter-spacing: -0.02em;
+        }
+        .wp-content h1 { font-size: 2rem; }
+        .wp-content h2 { font-size: 1.75rem; border-b: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 0.5rem; }
+        .wp-content h3 { font-size: 1.5rem; }
+        .wp-content h4 { font-size: 1.25rem; }
+        
+        .wp-content img {
+            border-radius: 1.25rem;
+            max-width: 100%;
+            height: auto;
+            margin: 2rem auto;
+            display: block;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.6);
+        }
+        
+        .wp-content strong, .wp-content b {
+            color: #ffffff;
+            font-weight: 700;
+        }
+        
+        .wp-content em, .wp-content i {
+            font-style: italic;
+            color: #e2e8f0;
+        }
+        
+        .wp-content ul, .wp-content ol {
+            margin-left: 1.5rem;
+            margin-bottom: 1.5rem;
+            margin-top: 0.5rem;
+            padding-left: 0.5rem;
+        }
+        .wp-content ul {
+            list-style-type: disc;
+        }
+        .wp-content ol {
+            list-style-type: decimal;
+        }
+        .wp-content li {
+            margin-bottom: 0.5rem;
+            padding-left: 0.25rem;
+        }
+        .wp-content li::marker {
+            color: #3b82f6; /* brand-500 marker */
+        }
+        
+        .wp-content a {
+            color: #60a5fa;
+            text-decoration: underline;
+            text-underline-offset: 4px;
+            text-decoration-color: rgba(96, 165, 250, 0.3);
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+        .wp-content a:hover {
+            color: #93c5fd;
+            text-decoration-color: rgba(147, 197, 253, 0.8);
+        }
+        
+        .wp-content blockquote {
+            border-left: 4px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.05);
+            padding: 1.25rem 1.75rem;
+            margin: 2rem 0;
+            border-radius: 0 1rem 1rem 0;
+            font-style: italic;
+            color: #e2e8f0;
+        }
+        .wp-content blockquote p {
+            margin-bottom: 0;
+        }
+        
+        .wp-content pre, .wp-content code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            background: rgba(17, 24, 39, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            color: #f472b6; /* pink-400 */
+        }
+        .wp-content code {
+            padding: 0.2rem 0.4rem;
+        }
+        .wp-content pre {
+            padding: 1.25rem;
+            overflow-x: auto;
+            margin: 1.75rem 0;
+        }
+        .wp-content pre code {
+            padding: 0;
+            background: transparent;
+            border: none;
+            color: #e2e8f0;
+            font-size: inherit;
+        }
+
+        .wp-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-size: 0.9375rem;
+            text-align: left;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        .wp-content th, .wp-content td {
+            padding: 0.875rem 1.25rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .wp-content th {
+            background-color: rgba(255, 255, 255, 0.02);
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .wp-content tr:last-child td {
+            border-bottom: none;
+        }
+        .wp-content tr:hover td {
+            background-color: rgba(255, 255, 255, 0.01);
+        }
+
+        .wp-content figure {
+            margin: 2rem 0;
+        }
+        .wp-content figcaption {
+            text-align: center;
+            font-size: 0.8125rem;
+            color: #64748b;
+            margin-top: 0.75rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body class="bg-dark-900 text-slate-300 antialiased selection:bg-brand-500/40 selection:text-white hero-bg">
+    
+    <div class="absolute inset-0 grid-bg pointer-events-none"></div>
+
+    <!-- ======== NAVBAR ======== -->
+    <header class="fixed top-0 left-0 right-0 z-50 glass-nav border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16 sm:h-20">
+                <a href="/" class="flex items-center gap-3 group">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 via-purple-500 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-brand-500/25 group-hover:shadow-brand-500/50 transition-shadow duration-300">
+                        <i class="fa-solid fa-graduation-cap text-lg"></i>
+                    </div>
+                    <div>
+                        <span class="block text-lg font-extrabold text-white tracking-tight group-hover:text-brand-400 transition-colors font-heading">โรงเรียนวัชระ</span>
+                        <span class="block text-[9px] font-bold text-slate-500 tracking-[0.2em] uppercase">Watchara School</span>
+                    </div>
+                </a>
+                <nav class="hidden lg:flex items-center gap-2">
+                    <a href="/" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">หน้าแรก</a>
+                    <a href="/#vision" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">วิสัยทัศน์</a>
+                    <a href="/#news" class="px-4 py-2 rounded-lg text-sm font-semibold text-brand-400 bg-brand-500/10 transition-all">ข่าวสาร</a>
+                    <a href="/#curriculum" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">หลักสูตร</a>
+                    <a href="/#contact" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-400 hover:text-white hover:bg-white/5 transition-all">ติดต่อเรา</a>
+                </nav>
+                <div class="flex items-center gap-4">
+                    <a href="/" class="inline-flex items-center gap-2 px-4 py-2.5 sm:px-5 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-400 hover:text-white bg-white/5 border border-white/10 rounded-xl transition-all duration-300">
+                        <i class="fa-solid fa-arrow-left-long"></i> <span class="hidden sm:inline">ย้อนกลับ</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ======== DETAIL CONTENT LAYOUT ======== -->
+    <main class="pt-24 sm:pt-32 pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        <!-- Breadcrumb -->
+        <nav class="flex items-center gap-2 text-xs sm:text-sm text-slate-500 mb-8" aria-label="Breadcrumb">
+            <a href="/" class="hover:text-slate-300 transition-colors flex items-center gap-1.5">
+                <i class="fa-solid fa-house text-[11px]"></i> หน้าแรก
+            </a>
+            <i class="fa-solid fa-chevron-right text-[9px] text-slate-700"></i>
+            <a href="/#news" class="hover:text-slate-300 transition-colors">ข่าวสารและกิจกรรม</a>
+            <i class="fa-solid fa-chevron-right text-[9px] text-slate-700"></i>
+            <span class="text-slate-300 truncate max-w-[200px] sm:max-w-xs" set:html={post.title?.rendered} />
+        </nav>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-start">
+            
+            <!-- ===== MAIN ARTICLE SECTION ===== (Col span: 8) -->
+            <article class="lg:col-span-8 bg-dark-800/40 border border-white/5 rounded-3xl p-6 sm:p-10 overflow-hidden shadow-2xl relative">
+                
+                {/* Dynamic Glowing Spotlight Category Header */}
+                <div class="relative overflow-hidden rounded-2xl mb-8 p-6 sm:p-10 flex flex-col justify-end min-h-[180px] sm:min-h-[220px]">
+                    {/* Category Background Gradient */}
+                    <div class={`absolute inset-0 bg-gradient-to-br ${categoryDetails.gradient} opacity-95`}></div>
+                    <div class="absolute inset-0 opacity-10 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:20px_20px]"></div>
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
+                    
+                    {/* Content inside Header */}
+                    <div class="relative z-10 space-y-3">
+                        <div class="flex flex-wrap items-center gap-2">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-white text-[10px] sm:text-xs font-bold border border-white/10">
+                                <i class={categoryDetails.icon}></i> {categoryDetails.label}
+                            </span>
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/25 backdrop-blur-md text-slate-300 text-[10px] sm:text-xs font-semibold">
+                                <i class="fa-regular fa-calendar"></i> {formatDate(post.date)}
+                            </span>
+                        </div>
+                        <h1 class="text-xl sm:text-3xl lg:text-4xl font-extrabold text-white leading-tight font-heading" set:html={post.title?.rendered} />
+                    </div>
+                </div>
+
+                {/* Article Info Bar */}
+                <div class="flex flex-wrap items-center justify-between gap-4 pb-6 mb-8 border-b border-white/5 text-xs text-slate-500">
+                    <div class="flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400">
+                            <i class="fa-solid fa-user-tie"></i>
+                        </div>
+                        <div>
+                            <span class="block text-slate-400 font-bold">เขียนโดย Admin</span>
+                            <span class="block text-[10px] text-slate-600">แหล่งข้อมูล: WordPress API</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-eye text-brand-400"></i> ดึงผ่าน WordPress
+                        </span>
+                        <span class="flex items-center gap-1.5">
+                            <i class="fa-solid fa-fingerprint text-purple-400"></i> ID: {post.id}
+                        </span>
+                    </div>
+                </div>
+
+                {/* Rendered WP Content */}
+                <div class="wp-content relative z-10" set:html={post.content?.rendered} />
+
+                <!-- Article Footer Share Mock -->
+                <div class="mt-12 pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div class="text-sm font-semibold text-slate-400 flex items-center gap-2">
+                        <i class="fa-solid fa-share-nodes text-brand-400"></i> แชร์ข่าวสารนี้
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="alert('คัดลอกลิงก์ไปยังคลิปบอร์ดแล้ว')" class="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-2">
+                            <i class="fa-solid fa-link"></i> คัดลอกลิงก์
+                        </button>
+                        <a href="#" onclick="event.preventDefault(); alert('แชร์ไปยัง Facebook สำเร็จ')" class="w-9 h-9 rounded-xl bg-blue-600/10 hover:bg-blue-600 border border-blue-500/20 hover:border-blue-500 text-blue-400 hover:text-white flex items-center justify-center transition-all duration-300">
+                            <i class="fa-brands fa-facebook-f text-sm"></i>
+                        </a>
+                        <a href="#" onclick="event.preventDefault(); alert('แชร์ไปยัง Twitter Line สำเร็จ')" class="w-9 h-9 rounded-xl bg-green-600/10 hover:bg-green-600 border border-green-500/20 hover:border-green-500 text-green-400 hover:text-white flex items-center justify-center transition-all duration-300">
+                            <i class="fa-brands fa-line text-base"></i>
+                        </a>
+                    </div>
+                </div>
+            </article>
+
+            <!-- ===== SIDEBAR SECTION ===== (Col span: 4) -->
+            <aside class="lg:col-span-4 space-y-8">
+                
+                {/* School Banner Card */}
+                <div class="bg-gradient-to-br from-dark-800 to-dark-900 border border-white/5 rounded-3xl p-6 relative overflow-hidden group">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-brand-500/10 via-purple-500/5 to-transparent blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                    <div class="relative z-10 text-center space-y-4">
+                        <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-brand-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl shadow-xl shadow-brand-500/20 mx-auto">
+                            <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-xl font-extrabold text-white font-heading">โรงเรียนวัชระ</h3>
+                            <p class="text-[10px] text-brand-400 font-bold uppercase tracking-[0.2em]">Watchara School</p>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">มุ่งมั่นพัฒนาผู้เรียนสู่นวัตกรรมแห่งอนาคตและคุณธรรมอันเป็นเลิศ</p>
+                        <a href="/#contact" class="inline-flex items-center justify-center w-full py-3 text-xs font-bold text-white bg-gradient-to-r from-brand-500 to-purple-600 rounded-xl hover:shadow-lg hover:shadow-brand-500/25 transition-all">
+                            <i class="fa-solid fa-paper-plane mr-2 text-[10px]"></i> สมัครเรียน / ติดต่อเรา
+                        </a>
+                    </div>
+                </div>
+
+                {/* Recent / Related News List */}
+                <div class="space-y-4">
+                    <h3 class="text-base font-extrabold text-white font-heading tracking-wide uppercase flex items-center gap-2">
+                        <span class="w-1.5 h-4 bg-brand-500 rounded-full"></span> ข่าวสารอื่นๆ ล่าสุด
+                    </h3>
+                    <div class="space-y-4">
+                        {recentPosts.length === 0 ? (
+                            <p class="text-xs text-slate-500 italic">ไม่มีข่าวสารอื่นในช่วงนี้</p>
+                        ) : (
+                            recentPosts.map((rPost) => {
+                                const rCats = getCategories(rPost);
+                                const rDetails = getCategoryDetails(rCats);
+                                return (
+                                    <a href={`/news/${rPost.slug ? decodeURIComponent(rPost.slug) : String(rPost.id)}`} class="block sidebar-card bg-dark-800/40 border border-white/5 hover:border-white/10 rounded-2xl p-4 flex gap-4">
+                                        <div class={`w-12 h-12 rounded-xl bg-gradient-to-br ${rDetails.gradient} flex items-center justify-center text-white text-lg flex-shrink-0`}>
+                                            <i class={rDetails.icon}></i>
+                                        </div>
+                                        <div class="space-y-1 min-w-0 flex-1">
+                                            <div class="flex items-center justify-between text-[10px] text-slate-500">
+                                                <span class="font-bold text-brand-400/80">{rDetails.label}</span>
+                                                <span>{formatDate(rPost.date)}</span>
+                                            </div>
+                                            <h4 class="text-xs sm:text-sm font-bold text-white leading-snug truncate" set:html={rPost.title?.rendered} />
+                                        </div>
+                                    </a>
+                                );
+                            })
+                        )}
+                    </div>
+                </div>
+
+            </aside>
+
+        </div>
+    </main>
+
+    <!-- ======== FOOTER ======== -->
+    <footer class="bg-dark-900 border-t border-white/5 py-8 text-center text-xs text-slate-500 relative z-10">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p>&copy; 2026 Watchara School. All rights reserved.</p>
+            <p class="flex items-center gap-1.5">Designed with <i class="fa-solid fa-heart text-rose-500 text-[10px]"></i> by <span class="text-brand-400 font-bold">Hermes AI</span></p>
+        </div>
+    </footer>
+
+</body>
+</html>

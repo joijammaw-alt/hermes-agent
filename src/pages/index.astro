@@ -600,7 +600,7 @@ const heroPosts = sortedPosts.slice(0, 2);
                                         <span class="flex items-center gap-1.5"><i class="fa-regular fa-calendar"></i> {formatDate(featuredPost.date)}</span>
                                         <span class="flex items-center gap-1.5"><i class="fa-regular fa-clock"></i> ล่าสุด</span>
                                     </div>
-                                    <a href={featuredPost.link} target="_blank" rel="noopener noreferrer" class={`inline-flex items-center gap-2 ${getCategoryDetails(getCategories(featuredPost)).btnColor} font-bold text-sm transition-colors group`}
+                                    <a href={`/news/${featuredPost.slug ? decodeURIComponent(featuredPost.slug) : String(featuredPost.id)}`} class={`inline-flex items-center gap-2 ${getCategoryDetails(getCategories(featuredPost)).btnColor} font-bold text-sm transition-colors group`}
                                         >อ่านเพิ่มเติม <i class="fa-solid fa-arrow-right text-xs group-hover:translate-x-1 transition-transform"></i
                                     ></a>
                                 </div>
@@ -720,7 +720,7 @@ const heroPosts = sortedPosts.slice(0, 2);
                                 <div class={`text-xs sm:text-sm text-slate-400 leading-relaxed ${isFirst ? 'line-clamp-4' : 'line-clamp-3'} flex-1 wp-content`} set:html={post.content.rendered} />
                                 <div class="pt-4 border-t border-white/5 flex items-center justify-between">
                                     <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wider">ID: {String(idx + 1).padStart(3, '0')}</span>
-                                    <a href={post.link} target="_blank" rel="noopener noreferrer" class={`inline-flex items-center ${details.btnColor} font-bold text-xs sm:text-sm transition-colors group/btn`}>
+                                    <a href={`/news/${post.slug ? decodeURIComponent(post.slug) : String(post.id)}`} class={`inline-flex items-center ${details.btnColor} font-bold text-xs sm:text-sm transition-colors group/btn`}>
                                         อ่านต่อ <i class="fa-solid fa-arrow-right ml-1.5 text-[10px] group-hover/btn:translate-x-1 transition-transform"></i>
                                     </a>
                                 </div>
