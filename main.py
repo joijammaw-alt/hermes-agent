@@ -30,13 +30,25 @@ def check_env():
     return True
 
 # 1. นำเข้าเครื่องมือที่สร้างไว้ (Custom Tools)
-from tools.scraper_tool import scrape_watchara_school
-from tools.wp_tool import publish_to_wordpress
+from tools.scraper_tool import scrape_watchara_school, scrape_any_website
+from tools.wp_tool import publish_to_wordpress, sync_wordpress_and_obsidian
 from tools.astro_tool import manage_astro_landing_page
 
 def main():
     if not check_env():
         sys.exit(1)
+
+    # เรียกกระบวนการซิงค์ข้อมูลลบสองทาง (Two-Way Sync) เป็นสเต็ปแรกสุด
+    try:
+        sync_wordpress_and_obsidian()
+    except Exception as e:
+        print(f"⚠️ เกิดข้อผิดพลาดในระบบซิงค์ความปลอดภัย: {e}")
+
+    print("\n" + "=" * 60)
+    user_url = input("🔗 กรุณาใส่ URL แหล่งข่าวที่ต้องการขูดข้อมูล (หรือกด Enter เพื่อใช้เว็บโรงเรียนวัชระจำลอง): ").strip()
+    if not user_url:
+        user_url = "https://example-watchara.com"
+    print("=" * 60)
 
     print("\n🚀 กำลังตั้งค่าระบบและสมองหลักของ Hermes AI Agent...")
     print("🔮 ใช้บริการ Z.ai (GLM 5.1) เป็นสมองหลัก...")
@@ -52,43 +64,66 @@ def main():
     # 3. สร้าง Agent "Hermes"
     hermes = Agent(
         role="Full-Stack AI Assistant",
-        goal="""ช่วยเหลือนักพัฒนาในการขูดข้อมูลข่าวสารของโรงเรียนวัชระ จัดเก็บข้อมูลลง Obsidian Vault อย่างเป็นระเบียบ, 
+        goal="""ช่วยเหลือนักพัฒนาในการขูดข้อมูลข่าวสาร จัดเก็บข้อมูลลง Obsidian Vault อย่างเป็นระเบียบ, 
 เผยแพร่สรุปข่าวที่น่าสนใจลง WordPress REST API, และออกแบบพัฒนาปรับโฉมหน้าแรกเว็บ Astro ด้วย Tailwind CSS ระดับ Premium""",
         backstory="""คุณคือ 'Hermes' สุดยอดผู้ช่วย AI อัจฉริยะแบบ Full-Stack ที่เก่งกาจทั้งด้านวิศวกรรมข้อมูล (Data Scraping) 
 การจัดการเนื้อหา (CMS) และการออกแบบพัฒนาเว็บ (Frontend) มีทักษะการดีไซน์ระดับสูงด้วย Tailwind CSS 
 คุณทำงานประณีต รอบคอบ ตรวจสอบข้อมูลก่อนโพสต์เสมอ และสื่อสารรายงานผลงานเป็นภาษาไทยที่สุภาพ เรียบร้อย เป็นมืออาชีพ""",
-        tools=[scrape_watchara_school, publish_to_wordpress, manage_astro_landing_page],
+        tools=[scrape_watchara_school, scrape_any_website, publish_to_wordpress, manage_astro_landing_page],
         llm=llm,
         verbose=True
     )
 
-    # 4. งานที่ 1: ดึงข้อมูลข่าวสารจากเว็บโรงเรียนวัชระและบันทึกลง Obsidian
-    task_scrape = Task(
-        description="""ใช้เครื่องมือ `scrape_watchara_school` เพื่อดึงข้อมูลหน้าหลัก (Landing Page) 
-และบล็อกข่าวสารล่าสุดทั้ง 5 หน้าของโรงเรียนวัชระ (โดยใช้ค่าเริ่มต้นหรือ URL https://example-watchara.com) 
+    # 4. งานที่ 1: ดึงข้อมูลข่าวสาร (รองรับลิงก์ภายนอกแบบไดนามิก)
+    if user_url == "https://example-watchara.com":
+        task_scrape = Task(
+            description=f"""ใช้เครื่องมือ `scrape_watchara_school` เพื่อดึงข้อมูลหน้าหลัก (Landing Page) 
+และบล็อกข่าวสารล่าสุดทั้ง 5 หน้าของโรงเรียนวัชระ (โดยใช้ URL {user_url}) 
 และทำการบันทึกเนื้อหาที่ดึงมาทั้งหมดลงในระบบจัดเก็บเอกสาร Obsidian Vault ในรูปแบบไฟล์ Markdown (.md) แยกตามหัวข้อข่าวอย่างครบถ้วน""",
-        expected_output="สรุปรายชื่อไฟล์ข่าวสารทั้งหมดที่บันทึกสำเร็จลงใน Obsidian Vault",
-        agent=hermes
-    )
+            expected_output="สรุปรายชื่อไฟล์ข่าวสารทั้งหมดที่บันทึกสำเร็จลงใน Obsidian Vault",
+            agent=hermes
+        )
+    else:
+        task_scrape = Task(
+            description=f"""ใช้เครื่องมือ `scrape_any_website` เพื่อดึงข้อมูลข่าวสารหรือบทความจาก URL {user_url} 
+และทำการบันทึกเนื้อหาที่ดึงมาทั้งหมดลงในระบบจัดเก็บเอกสาร Obsidian Vault ในรูปแบบไฟล์ Markdown (.md) อย่างสวยงามครบถ้วน""",
+            expected_output="ข้อความสรุปผลการบันทึกไฟล์ที่ขูดข้อมูลมาได้ลงใน Obsidian Vault สำเร็จเรียบร้อย",
+            agent=hermes
+        )
 
-    # 5. งานที่ 2: โพสต์ข่าวเด่นลง WordPress (อัปเดตให้โพสต์เพิ่มขึ้น)
-    task_wordpress = Task(
-        description="""จากบทความทั้งหมดของโรงเรียนวัชระที่ดึงมาในขั้นตอนแรก ให้วิเคราะห์และเลือกข่าวที่น่าสนใจและมีประโยชน์ที่สุดมา 3 ข่าว 
+    # 5. งานที่ 2: โพสต์ข่าวเด่นลง WordPress (อัปเดตให้โพสต์เพิ่มขึ้น - รองรับแบบไดนามิก)
+    if user_url == "https://example-watchara.com":
+        task_wordpress = Task(
+            description="""จากบทความทั้งหมดของโรงเรียนวัชระที่ดึงมาในขั้นตอนแรก ให้วิเคราะห์และเลือกข่าวที่น่าสนใจและมีประโยชน์ที่สุดมา 3 ข่าว 
 นำข้อมูลทั้ง 3 ข่าวนี้มาเรียบเรียงใหม่เป็นบทความภาษาไทยที่อ่านสนุก จัดรูปแบบเนื้อหาด้วย Tag HTML พื้นฐานอย่างสวยงาม 
 จากนั้นให้เรียกใช้เครื่องมือ `publish_to_wordpress` เพื่อเผยแพร่บทความขึ้นระบบเว็บบล็อก (โดยทำการเรียกเครื่องมือนี้แยกกันทีละข่าวจนครบทั้ง 3 ข่าว)""",
-        expected_output="ข้อความยืนยันการโพสต์และลิงก์บทความทั้ง 3 ข่าวที่ส่งไปยัง WordPress สำเร็จเรียบร้อย",
-        agent=hermes
-    )
-
-
-    # 6. งานที่ 3: ปรับแต่งเว็บ Astro
-    task_astro = Task(
-        description="""อ่านโครงสร้างเว็บเดิมจากหน้าแรกของ Astro
+            expected_output="ข้อความยืนยันการโพสต์และลิงก์บทความทั้ง 3 ข่าวที่ส่งไปยัง WordPress สำเร็จเรียบร้อย",
+            agent=hermes
+        )
+        
+        task_astro = Task(
+            description="""อ่านโครงสร้างเว็บเดิมจากหน้าแรกของ Astro
 วิเคราะห์เนื้อหาข้อมูลข่าวสารเด่นทั้งหมดของโรงเรียนวัชระที่ดึงมาในขั้นตอนแรก (นำข่าวสารทั้งหมดที่มีมาคำนวณแสดงผล)
 จากนั้น ออกแบบโฉมใหม่หน้าแรกของ Astro โดยนำข่าวสารล่าสุดทั้งหมดมาแสดงผลในรูปแบบ Dynamic Cards Grid ที่รองรับการกรองหมวดหมู่ข่าวอย่างสวยงาม...""",
-        expected_output="...",
-        agent=hermes
-    )
+            expected_output="...",
+            agent=hermes
+        )
+    else:
+        task_wordpress = Task(
+            description=f"""วิเคราะห์และสรุปบทความเดี่ยวของข่าวใหม่ที่เพิ่งขูดมาได้ในขั้นตอนแรกจาก ({user_url}) 
+นำมาเรียบเรียงใหม่เป็นบทความภาษาไทยที่ดึงดูดใจ น่าอ่าน จัดรูปแบบเนื้อหาด้วย Tag HTML พื้นฐานอย่างสวยงาม 
+จากนั้นให้เรียกใช้เครื่องมือ `publish_to_wordpress` เพื่อโพสต์และเผยแพร่บทความชิ้นนี้ขึ้นระบบ WordPress ทันที""",
+            expected_output="ข้อความยืนยันการโพสต์และลิงก์ของบทความใหม่จากลิงก์นอกที่ถูกอัปโหลดขึ้น WordPress สำเร็จเรียบร้อย",
+            agent=hermes
+        )
+        
+        task_astro = Task(
+            description="""อ่านโครงสร้างเว็บเดิมจากหน้าแรกของ Astro
+วิเคราะห์เนื้อหาข้อมูลข่าวสารเด่นทั้งหมดที่มีในระบบคลังความรู้ รวมถึงข่าวภายนอกชิ้นใหม่ล่าสุดที่เราเพิ่งดึงข้อมูลมาด้วย
+จากนั้น ออกแบบโฉมใหม่หน้าแรกของ Astro โดยนำข่าวสารล่าสุดทั้งหมดมาแสดงผลในรูปแบบ Dynamic Cards Grid ที่รองรับการกรองหมวดหมู่ข่าวอย่างสวยงาม...""",
+            expected_output="...",
+            agent=hermes
+        )
 
 
     # 7. ประกอบและจัดตั้ง Crew 

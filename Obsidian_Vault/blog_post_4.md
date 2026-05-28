@@ -1,6 +1,6 @@
 ---
 title: "การปรับปรุงหลักสูตรการเขียนโปรแกรมและการคิดเชิงคำนวณ"
-date: 2026-05-27
+date: 2026-05-28
 tags: [โรงเรียนวัชระ, อัตโนมัติ, บล็อกข่าว]
 type: blog
 original_url: "https://example-watchara.com/blog/coding-curriculum-update"

@@ -1,6 +1,6 @@
 ---
 title: "ยินดีต้อนรับสู่โรงเรียนวัชระ"
-date: 2026-05-27
+date: 2026-05-28
 tags: [โรงเรียนวัชระ, อัตโนมัติ, หน้าแรก]
 type: landing
 original_url: "https://example-watchara.com"

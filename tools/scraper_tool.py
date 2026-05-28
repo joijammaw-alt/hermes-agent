@@ -1,4 +1,5 @@
 import os
+import re
 import datetime
 import requests
 from bs4 import BeautifulSoup
@@ -239,3 +240,58 @@ def scrape_watchara_school(url: str = "https://example-watchara.com") -> str:
 
     summary_msg = "ขูดข้อมูลโรงเรียนวัชระเสร็จเรียบร้อยแล้ว!\n" + "\n".join(results)
     return summary_msg
+
+
+@tool("scrape_any_website")
+def scrape_any_website(url: str) -> str:
+    """ดึงข้อมูลข่าวสารหรือบทความจาก URL ใดก็ได้ที่ระบุ 
+    สกัดเอาเฉพาะข้อความหลัก (Main text content) ออกมา จากนั้นบันทึกเป็นไฟล์ Markdown (.md) ลงใน Obsidian Vault ทันที"""
+    print(f"กำลังเริ่มการดึงข้อมูลจากแหล่งข่าวนอก: {url}...")
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        # ดึงหน้าเว็บ
+        response = requests.get(url, headers=headers, timeout=10)
+        response.encoding = 'utf-8'
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # ดึงหัวข้อข่าว
+        title = soup.title.string if soup.title else "บทความขูดข้อมูลทั่วไป"
+        title = clean_text(title)
+        
+        # เอาส่วนประกอบที่ไม่ใช่เนื้อหาหลักออก
+        for element in soup(["script", "style", "nav", "footer", "header", "aside", "form"]):
+            element.decompose()
+            
+        # สกัดเอาข้อความหลัก
+        paragraphs = soup.find_all('p')
+        if paragraphs:
+            content = "\n\n".join([p.get_text().strip() for p in paragraphs if p.get_text().strip()])
+        else:
+            content = clean_text(soup.get_text())
+            
+        # ค้นหาชื่อไฟล์ลำดับถัดไป (เช่น blog_post_8.md)
+        max_num = 0
+        if os.path.exists(OBSIDIAN_VAULT_PATH):
+            pattern = re.compile(r"^blog_post_(\d+)\.md$")
+            for fn in os.listdir(OBSIDIAN_VAULT_PATH):
+                match = pattern.match(fn)
+                if match:
+                    num = int(match.group(1))
+                    if num > max_num:
+                        max_num = num
+                        
+        filename = f"blog_post_{max_num + 1}.md"
+        
+        # เซฟลง Obsidian Vault
+        filepath = save_to_obsidian(
+            filename=filename,
+            title=title,
+            content=content,
+            content_type="blog",
+            url=url
+        )
+        return f"ดึงข้อมูลสำเร็จ! บันทึกไฟล์ลง Obsidian เรียบร้อย: {filepath} (หัวข้อ: {title})"
+    except Exception as e:
+        return f"เกิดข้อผิดพลาดในการดึงข้อมูลจาก {url}: {e}"
